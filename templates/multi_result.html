@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiple Reports – Slide View</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #fef9f0;
+            padding: 20px;
+        }
+        .slide {
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.2);
+            margin-bottom: 40px;
+            padding: 2rem;
+            page-break-after: always;
+            break-inside: avoid;
+        }
+        .slide:last-child {
+            page-break-after: auto;
+        }
+        .slide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e3a56d;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .patient-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2b7a62;
+        }
+        .metric-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .metric-card {
+            flex: 1;
+            min-width: 150px;
+            background: #fef9f0;
+            border-radius: 24px;
+            padding: 0.8rem;
+            border: 1px solid #ffe5ce;
+        }
+        .metric-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #8c9a7a;
+        }
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .severity-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .alert-box {
+            background: #fff0e6;
+            border-radius: 20px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+        }
+        .diet-box {
+            background: #eef6f0;
+            border-radius: 24px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .precautions {
+            background: #fff9ef;
+            border-radius: 24px;
+            padding: 1rem;
+            list-style: none;
+        }
+        .precautions li {
+            margin-bottom: 8px;
+            padding-left: 24px;
+            position: relative;
+        }
+        .precautions li::before {
+            content: "🛡️";
+            position: absolute;
+            left: 0;
+        }
+        .nav-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        .nav-btn {
+            background: #2b7a62;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .nav-btn:hover {
+            background: #1f5e4b;
+        }
+        .print-btn {
+            background: #e3a56d;
+        }
+        @media print {
+            .nav-buttons, .print-btn, .no-print {
+                display: none;
+            }
+            body {
+                background: white;
+                padding: 0;
+            }
+            .slide {
+                box-shadow: none;
+                margin: 0;
+                border-radius: 0;
+                page-break-after: always;
+            }
+        }
+        @media (max-width: 700px) {
+            .slide { padding: 1rem; }
+            .metric-grid { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div id="slidesContainer">
+    {% for result in results %}
+    <div class="slide" id="slide-{{ loop.index0 }}">
+        <div class="slide-header">
+            <div class="patient-name">📄 {{ result.filename }}</div>
+            <div>🩺 Report #{{ loop.index }}</div>
+        </div>
+
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-label">Blood Pressure</div>
+                <div class="metric-value">
+                    <span class="severity-dot" style="background: {{ result.severity.bp[1] }}"></span>
+                    {{ result.severity.bp[0] }}
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Blood Sugar</div>
+                <div class="metric-value">
+                    <span class="severity-dot" style="background: {{ result.severity.glucose[1] }}"></span>
+                    {{ result.severity.glucose[0] }}
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Cholesterol</div>
+                <div class="metric-value">
+                    <span class="severity-dot" style="background: {{ result.severity.cholesterol[1] }}"></span>
+                    {{ result.severity.cholesterol[0] }}
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">BMI</div>
+                <div class="metric-value">
+                    <span class="severity-dot" style="background: {{ result.severity.bmi[1] }}"></span>
+                    {{ result.severity.bmi[0] }}
+                </div>
+            </div>
+        </div>
+
+        {% set alerts = [] %}
+        {% for key in ['bp', 'glucose', 'cholesterol', 'bmi'] %}
+            {% if result.severity[key][0] not in ['Normal','Desirable','सामान्य','वांछनीय'] %}
+                {% set _ = alerts.append(1) %}
+            {% endif %}
+        {% endfor %}
+        {% if alerts %}
+        <div class="alert-box">
+            ⚠️ <strong>Critical alerts:</strong> Please pay attention to the highlighted parameters above.
+        </div>
+        {% else %}
+        <div class="alert-box" style="background:#e3f0eb; color:#2b7a62;">
+            ✅ All parameters are within normal ranges. Keep up the good work!
+        </div>
+        {% endif %}
+
+        <div class="diet-box">
+            <strong>🍽️ Recommended Meal Plan:</strong> 
+            <span style="color:#2b7a62; font-weight:700;">{{ result.diet_plan }}</span>
+            <p style="margin-top:8px;">Based on your health profile, we suggest a {{ result.diet_plan.lower() }}. Focus on whole foods, portion control, and regular meal timings.</p>
+        </div>
+
+        <div class="precautions">
+            <strong>🛡️ Precautions & Tips</strong>
+            <ul style="margin-top:10px;">
+                {% for p in result.precautions %}
+                <li>{{ p }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if errors %}
+    <div class="slide" style="background:#ffe0db;">
+        <h3>⚠️ Errors encountered</h3>
+        <ul>
+        {% for err in errors %}
+            <li>{{ err }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+
+<div class="nav-buttons no-print">
+    <button class="nav-btn" id="prevSlide" disabled>◀ Previous</button>
+    <span id="slideCounter" style="background:white; padding:6px 12px; border-radius:30px; font-weight:500;"></span>
+    <button class="nav-btn" id="nextSlide">Next ▶</button>
+    <button class="nav-btn print-btn" onclick="window.print();">🖨️ Print / Save as PDF</button>
+    <button class="nav-btn" onclick="downloadAllAsText()">📄 Download All as Text</button>
+    <a href="/" class="nav-btn" style="text-decoration:none; background:#5a6e4a;">🏠 Home</a>
+</div>
+
+<script>
+    let currentIndex = 0;
+    const slides = document.querySelectorAll('.slide');
+    const total = slides.length;
+    const prevBtn = document.getElementById('prevSlide');
+    const nextBtn = document.getElementById('nextSlide');
+    const counterSpan = document.getElementById('slideCounter');
+
+    function updateSlideVisibility() {
+        slides.forEach((slide, idx) => {
+            if (idx === currentIndex) {
+                slide.style.display = 'block';
+            } else {
+                slide.style.display = 'none';
+            }
+        });
+        counterSpan.innerText = `${currentIndex+1} / ${total}`;
+        prevBtn.disabled = (currentIndex === 0);
+        nextBtn.disabled = (currentIndex === total-1);
+    }
+
+    prevBtn.addEventListener('click', () => {
+        if (currentIndex > 0) {
+            currentIndex--;
+            updateSlideVisibility();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+    nextBtn.addEventListener('click', () => {
+        if (currentIndex < total-1) {
+            currentIndex++;
+            updateSlideVisibility();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+
+    function downloadAllAsText() {
+        let content = '';
+        slides.forEach(slide => {
+            const clone = slide.cloneNode(true);
+            clone.querySelectorAll('.nav-buttons, .print-btn, .no-print, button').forEach(el => el.remove());
+            content += clone.innerText.trim() + '\n\n---\n\n';
+        });
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'all_reports.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // initial: show only first slide
+    updateSlideVisibility();
+</script>
+</body>
+</html>
