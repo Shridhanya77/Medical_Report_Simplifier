@@ -3,3 +3,6 @@ gunicorn
 scikit-learn
 pandas
 numpy
+pdfplumber
+pillow
+pytesseract

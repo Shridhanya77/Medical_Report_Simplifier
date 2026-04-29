@@ -2,7 +2,9 @@
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import joblib
 
+model = joblib.load("models/macro_classifier.pkl")
 from utils import assess_severity, get_precautions
 
 def rule_based_diet(chronic_disease, bmi, glucose, cholesterol):
